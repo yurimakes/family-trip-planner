@@ -1,0 +1,221 @@
+import {PARENTS, initialDraft, exampleDraft, buildPlan, remainingPlan, metrics, escapeText as esc} from './planner.js';
+
+const $ = id => document.getElementById(id);
+const people = {mom: '어머니', dad: '아버지'};
+const kinds = {sight: '관광', meal: '식사', rest: '휴식'};
+const labels = {yes: 'O 좋아요', no: 'X 다른 게 좋아요', skip: '건너뜀'};
+const contexts = [
+  ['자녀가 큰틀을 준비해요', '가상 후보에서 관광·식사·휴식을 추리고 부모님과 확인한 보행·식사 조건을 설정한다.'],
+  ['부모님은 몇 장의 사진 카드에서 골라요', '두 분의 응답을 각각 기록한다. 좋아한 경험은 필수로 표시하고 직접 선택·대화 확인을 구분한다.'],
+  ['선택한 경험을 지키는 두 안을 비교해요', '가족이 원하는 경험과 식사 시간을 유지하며 관람 방식·보행 범위·비용 변화를 비교한다.'],
+  ['확인한 여행을 함께 안내해요', '자녀와 부모님에게 같은 일정 버전을 표시한다. 방문 이유·식사·휴식을 한 장으로 인쇄할 수 있다.'],
+  ['이미 다녀온 구간은 그대로 두어요', '완료한 구간을 지정하고 남은 구간만 짧은 접근으로 다시 검사한다. 이미 걸은 거리도 하루 합계에 포함한다.'],
+  ['여행의 기대와 추억을 카드로 남겨요', '기본 캐릭터와 사용자가 고른 사진으로 초대·추억 카드를 만든다. 생성형 AI 사진 변환은 후속 연동이다.']
+];
+let data, apiAvailable = false, serverTrip = null;
+const objectUrls = new Set();
+const initial = () => ({draft: initialDraft(), step: 1, prepared: false, person: 'mom', index: {mom: 0, dad: 0}, selected: 'A', consent: {mom: false, dad: false}, confirmed: null, version: 0, change: null, changeConsent: {mom: false, dad: false}, completedCount: 0, remainingLimit: 300, continuousLimit: 100, photos: {}, memoryPhoto: null, photoConsent: false, generated: false, style: 'warm', kind: 'invite', caption: '함께 고르고, 함께 남긴 하루', dirty: true, sample: false});
+let s = initial();
+const place = id => data.places.find(p => p.id === id);
+const chosen = () => s.draft.candidates.map(place);
+const complete = parent => s.draft.candidates.every(id => s.draft.responses[parent][id]);
+const plan = key => buildPlan(s.draft, key, data);
+const all = obj => PARENTS.every(p => obj[p]);
+const range = value => `${value[0].toLocaleString()}–${value[1].toLocaleString()}`;
+const clock = minutes => `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+const required = id => PARENTS.some(p => s.draft.essentials[p].includes(id));
+const btn = (action, label, disabled = false, extra = '', cls = '') => `<button class="app-button ${cls}" data-action="${action}" ${disabled ? 'disabled' : ''} ${extra}>${label}</button>`;
+const status = (text, warn = false) => `<div class="app-status ${warn ? 'warn' : ''}">${text}</div>`;
+const tabs = () => `<div class="choice">${PARENTS.map(p => `<button class="${s.person === p ? 'chosen' : ''}" data-action="person" data-person="${p}" aria-pressed="${s.person === p}">${people[p]}</button>`).join('')}</div>`;
+function picture(p) {
+  return `<div class="picture"><img src="${esc(s.photos[p.id] || p.illustration)}" alt="${esc(p.name)} · ${s.photos[p.id] ? '사용자가 선택한 사진' : '가상 예시 일러스트'}"><span>${s.photos[p.id] ? '직접 넣은 사진' : '가상 장소 · 일러스트'}</span></div>`;
+}
+function app(role, body) {
+  return `<div class="statusbar"><span>9:41</span><span class="notch" aria-hidden="true"></span><span aria-hidden="true">▰ ▰</span></div><div class="appbar"><div class="appbrand">같이<span>온</span></div><span class="tag grey">${role}</span></div><div class="app-body">${body}</div>`;
+}
+function toast(message) {
+  $('toast').textContent = message; $('toast').hidden = false;
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => $('toast').hidden = true, 3500);
+}
+function issueText(issue) {
+  const name = issue.id ? place(issue.id).name : '';
+  const parent = people[issue.parent] || '';
+  return ({RESPONSES_REQUIRED: `${parent}의 응답·입력 출처 확인 필요`, COMMON_CHOICE_REQUIRED: `두 분이 함께 원하는 ${kinds[issue.kind]} 확인 필요`, SIGHT_CHOICE_REQUIRED: '여행에서 원하는 관광 경험 확인 필요', ESSENTIAL_MISSING: `${parent}의 필수 경험 누락: ${name}`, ACCESS_UNKNOWN: `${name}의 접근 정보 미확인`, STAIRS_CONFLICT: `${name}의 계단 회피 조건 충돌`, OPENING_CONFLICT: `${name}의 운영시간 충돌`, RESERVATION_CONFLICT: '12시 식사 예약과 도착 시간 충돌', MEAL_CONFLICT: '맵지 않은 식사 조건 확인 필요', PREFERENCE_CHECK_REQUIRED: `${parent}에게 ${name} 다시 확인`, DAILY_WALK_EXCEEDED: `하루 보행 ${issue.actual}m > ${issue.limit}m`, CONTINUOUS_WALK_EXCEEDED: `연속 보행 ${issue.actual}m > ${issue.limit}m`, BUDGET_EXCEEDED: `예산 ${issue.actual?.toLocaleString()}원 > ${issue.limit?.toLocaleString()}원`, REMAINING_WALK_EXCEEDED: `남은 보행 ${issue.actual}m > ${issue.limit}m`})[issue.code] || issue.code;
+}
+function source() {
+  return `<details class="source-detail"><summary>거리와 정보의 근거</summary><p>이 예시의 장소·구간·거리·시간·비용은 가상 데이터이다. 실제 시설을 검증한 자료가 아니다.</p><p>접근·경험·출구 구간을 합산하고 범위의 상한으로 검사한다. 확인된 좌석 휴식은 연속 보행을 나누며, 하루 총보행에서 거리를 차감하지 않는다.</p><p>실제 데이터에는 출처 URL·확인일·측정/추정/미확인 상태가 필요하다. 팬심·작품 테마는 공개 장소와 인물의 관계를 확인한 뒤 연결한다.</p></details>`;
+}
+function responses(parent) {
+  return chosen().map(p => `<div class="response-line"><span>${esc(p.experience)}</span><b>${labels[s.draft.responses[parent][p.id]] || '미응답'}${s.draft.essentials[parent].includes(p.id) ? ' · ★ 필수' : ''}</b></div>`).join('');
+}
+function planCard(p, selectable = false) {
+  const title = p.key === 'A' ? 'A · 선택한 관람을 더 남기기' : p.key === 'B' ? 'B · 짧은 접근과 휴식 중심' : '남은 구간 · 짧은 접근';
+  return `<div class="plan-box ${s.selected === p.key ? 'selected' : ''}"><h4>${title}</h4><span class="tag ${p.valid ? '' : 'orange'}">${p.valid ? '예시 조건 충족' : '확인 필요'}</span><div class="metric">${range(p.walk)}m</div><p>하루 보행 범위 · 최대 연속 ${p.continuous}m<br>가족 비용 ${range(p.cost)}원 · 식사 12:00 고정</p>${p.remaining_walk ? status(`이미 걸은 거리 ${range(p.completed_walk)}m<br>남은 보행 ${range(p.remaining_walk)}m · 연속 ${p.remaining_continuous}m`) : ''}<div class="changes">${p.rows.map(r => `<span>${esc(r.experience)} ${r.completed ? '완료·유지' : '유지'}${required(r.id) ? ' · 필수' : ''}</span>`).join('')}${p.omitted.map(id => `<span class="lost">${esc(place(id).experience)} 생략</span>`).join('')}${p.key !== 'A' ? '<span class="lost">충분한 관람을 짧은 접근으로 변경</span>' : ''}</div>${p.issues.length ? `<p class="check-issues">${p.issues.map(i => esc(issueText(i))).join('<br>')}</p>` : ''}${selectable ? `<button class="mini-button" data-action="select-plan" data-plan="${p.key}" ${p.valid ? '' : 'disabled'}>${s.selected === p.key ? '선택한 안' : '이 안 선택'}</button>` : ''}</div>`;
+}
+function timeline(p) {
+  return `<div class="timeline">${p.rows.map(r => `<div class="event ${r.completed ? 'completed' : ''}"><span class="time">${clock(r.start)}</span><div><b>${esc(r.experience)}${r.completed ? ' · 완료' : ''}${required(r.id) ? ' ★' : ''}</b><p>${r.mode.id === 'short' ? '짧은 접근' : '충분한 관람'} · ${range(metrics(r.mode).walk)}m<br>${clock(r.start)}–${clock(r.end)}${r.kind === 'meal' ? ' · 예약 유지' : ''}</p></div></div>`).join('')}</div>`;
+}
+function setup() {
+  const c = s.draft.config;
+  const select = (id, label, options, value) => `<div class="field"><label for="${id}">${label}</label><select id="${id}">${options.map(([v, text]) => `<option value="${v}" ${v === value ? 'selected' : ''}>${text}</option>`).join('')}</select></div>`;
+  return app('자녀 · 사전 설정', `<span class="tag">먼저 큰틀을 정해요</span><h3>부모님이 고를 후보를<br>먼저 준비해요</h3><p class="intro-text">한 권역의 차량 동반 당일여행을 준비해요. 부모님과 확인한 조건을 바탕으로 후보를 추려 주세요.</p>${status('가상 국내 권역 · 부모님 2명 + 자녀 1명<br>차량 이동 · 12시 식사 예약')}${select('budget', '가족 예산', [[150000,'15만원'],[200000,'20만원'],[300000,'30만원']], c.budget)}${select('walk-limit','하루 보행 계획 상한',[[250,'250m'],[500,'500m'],[800,'800m'],[1200,'1,200m'],[1600,'1,600m']],c.walk_limit)}${select('continuous-limit','한 번에 걷는 계획 상한',[[60,'60m'],[100,'100m'],[200,'200m'],[300,'300m']],c.continuous_limit)}<label class="check-label"><input type="checkbox" id="avoid-stairs" ${c.avoid_stairs ? 'checked' : ''}>계단을 피하고 싶어요</label><label class="check-label"><input type="checkbox" id="mild-food" ${c.mild_food ? 'checked' : ''}>맵지 않은 메뉴를 원해요</label><p class="app-small">보행 기준은 가족이 정하는 계획 조건이다. 나이나 질환명으로 체력을 추정하지 않는다.</p><h4>부모님께 보여줄 후보 ${s.draft.candidates.length}개</h4>${data.places.map(p => `<div class="app-card mini-candidate">${picture(p)}<span class="tag grey">${kinds[p.kind]}</span><h4>${esc(p.name)}</h4><p>${esc(p.description)}</p><button class="mini-button" data-action="pick" data-id="${p.id}" aria-pressed="${s.draft.candidates.includes(p.id)}">${s.draft.candidates.includes(p.id) ? '✓ 부모님께 보여주기' : '후보에 추가'}</button><label class="photo-upload">사진 직접 넣기<input type="file" accept="image/png,image/jpeg,image/webp" data-photo="${p.id}"></label></div>`).join('')}${btn('prepare','후보 저장 · 부모님께 보여주기')}`);
+}
+function parentCards() {
+  if (!s.prepared) return app('부모님 · 사진 선택', `<h3>여행 후보를<br>준비하고 있어요</h3><p class="intro-text">자녀가 추린 사진에서 원하는 것만 편하게 골라 주세요.</p>${picture(place('tea'))}${status('자녀 화면에서 후보를 저장해 주세요.',true)}`);
+  const parent = s.person, list = chosen(), index = Math.min(s.index[parent],list.length-1), p = list[index], answer = s.draft.responses[parent][p.id];
+  return app(`${people[parent]} · 간단 선택`, `${tabs()}<h3>${parent === 'mom' ? '엄마' : '아빠'}, 이런 곳은<br>어때요?</h3><p class="intro-text">좋아하는 것만 편하게 골라 주세요.</p><div class="parent-choice-card"><div class="choice-card-head"><span>부모님 취향 확인</span><span>${index+1} / ${list.length}</span></div>${picture(p)}<p class="category-label">${kinds[p.kind]}</p><h4>${esc(p.name)}</h4><p class="choice-description">${esc(p.description)}</p><div class="ox-buttons"><button data-action="answer" data-value="no" class="${answer === 'no' ? 'selected' : ''}" aria-pressed="${answer === 'no'}"><b>×</b>별로예요</button><button data-action="answer" data-value="yes" class="yes ${answer === 'yes' ? 'selected' : ''}" aria-pressed="${answer === 'yes'}"><b>♡</b>좋아요</button></div></div>${status(`짧은 접근 ${range(metrics(p.modes[1]).walk)}m · 좌석 휴식 구간 포함<br>가상 데이터 · 실제 접근 정보 확인 전`)}<button class="skip-button" data-action="answer" data-value="skip">잘 모르겠어요 · 건너뛰기</button>${btn('essential',s.draft.essentials[parent].includes(p.id) ? '★ 꼭 하고 싶은 경험으로 표시됨' : '☆ 이번 여행에서 꼭 하고 싶어요',answer !== 'yes','','secondary')}<div class="card-nav"><button class="mini-button" data-action="previous" ${index ? '' : 'disabled'}>이전</button><button class="mini-button" data-action="next" ${index < list.length-1 ? '' : 'disabled'}>다음 후보</button></div><div class="app-card"><h4>${people[parent]}의 선택</h4>${responses(parent)}</div>${btn('submit',s.draft.sources[parent] === 'direct' ? '직접 선택 전달 완료' : '이 선택을 자녀에게 전달하기',!complete(parent))}<p class="app-small">건너뛴 항목은 동의로 기록하지 않아요. 의견이 다르면 일정을 확정하기 전에 다시 확인해요.</p>`);
+}
+function childResponses() {
+  return app('자녀 · 선택 취합', `<h3>예상한 취향과<br>직접 선택을 나눠요</h3><p class="intro-text">부모님은 큰틀을 다시 입력하지 않아요. 고른 경험만 일정에 연결해요.</p>${PARENTS.map(parent => `<div class="app-card"><h4>${people[parent]} <span class="tag ${s.draft.sources[parent] === 'unconfirmed' ? 'orange' : ''}">${s.draft.sources[parent] === 'unconfirmed' ? '확인 전' : '응답 확인'}</span></h4>${responses(parent)}<p>입력 출처: ${s.draft.sources[parent] === 'direct' ? '부모님 직접 선택' : s.draft.sources[parent] === 'conversation' ? '대화 확인 · 자녀 기록' : '확인 전'}</p><button class="mini-button" data-action="conversation" data-parent="${parent}" ${complete(parent) ? '' : 'disabled'}>대화로 확인한 응답으로 기록</button></div>`).join('')}${btn('compare','확인한 경험으로 일정 비교',!s.prepared)}${apiAvailable ? btn('save','설정·응답을 로컬 API에 저장',false,'','secondary') : ''}${s.sample ? status('빠른 체험의 가상 응답이다. 실제 사용자 응답이 아니다.',true) : ''}`);
+}
+function childCompare() {
+  return app('자녀 · 대안 비교', `<h3>원하는 경험은 남기고<br>걷는 방식을 바꿔요</h3><p class="intro-text">가족이 고른 경험과 12시 식사 예약을 기준으로 비교해요.</p>${status(`하루 ${s.draft.config.walk_limit}m · 연속 ${s.draft.config.continuous_limit}m 이내`)}${planCard(plan('A'),true)}${planCard(plan('B'),true)}${source()}${status(`일정 확인: 어머니 ${s.consent.mom ? '완료' : '대기'} · 아버지 ${s.consent.dad ? '완료' : '대기'}`,!all(s.consent))}${btn('finalize','가족이 확인한 일정으로 소개 만들기',!plan(s.selected).valid || !all(s.consent))}`);
+}
+function parentCompare() {
+  const p = plan(s.selected);
+  return app(`${people[s.person]} · 일정 확인`, `${tabs()}<h3>고른 경험이<br>이렇게 남아요</h3>${p.rows.map(r => `<div class="app-card">${picture(place(r.id))}<h4>${esc(r.experience)}${required(r.id) ? ' ★' : ''}</h4><p>${r.mode.id === 'short' ? '긴 관람 대신 짧은 접근' : '충분한 관람'} · ${range(metrics(r.mode).walk)}m</p></div>`).join('')}${p.omitted.length ? status(`생략되는 경험: ${p.omitted.map(id => esc(place(id).experience)).join(', ')}`,true) : ''}${status(`예상 보행 ${range(p.walk)}m · 식사 12시`)}${p.issues.length ? status('확인할 조건이 있어요. 자녀 화면의 항목을 함께 확인해 주세요.',true) : ''}${btn('consent',s.consent[s.person] ? '이 일정 확인 완료' : '이 일정으로 함께 가요',!p.valid)}${btn('choices','내가 고른 경험 다시 보기',false,'','secondary')}`);
+}
+function guide(role) {
+  if (!s.confirmed) return app(`${role} · 여행 소개`, `<h3>가족이 함께<br>확인한 뒤 만들어요</h3><p class="intro-text">일정 비교에서 두 분의 확인을 받으면 같은 버전의 소개자료를 볼 수 있어요.</p>${btn('compare','일정 비교로 이동')}`);
+  const p = s.confirmed;
+  return app(`${role} · 여행 소개`, `<span class="tag">확정 예시 일정 v${s.version}</span><h3>우리가 고른<br>사진과 식사의 하루</h3><p class="intro-text">${p.rows.some(r => r.id === 'fan') ? '좋아하는 테마 장소에서 함께 사진을 남겨요.' : '함께 고른 경험을 편하게 즐겨요.'}</p>${picture(place(p.rows.find(r => r.kind === 'sight')?.id || p.rows[0].id))}${status(`자녀·부모님 안내 같은 버전 v${s.version}<br>하루 보행 ${range(p.walk)}m`)}${timeline(p)}${btn('print','오늘의 여행 소개 한 장 인쇄',false,'','secondary')}${btn('rest','쉬고 싶어요 · 덜 걷고 싶어요')}${btn('memory','가족 초대·추억 카드 만들기',false,'','secondary')}${source()}`);
+}
+function childChange() {
+  if (!s.confirmed) return app('자녀 · 일정 수정', `<h3>확인한 일정부터<br>준비해 주세요</h3>${planCard(plan('B'))}${btn('setup','조건 수정으로 이동',false,'','secondary')}${btn('compare','일정 비교로 이동')}`);
+  return app('자녀 · 남은 구간', `<h3>완료한 구간은 고정하고<br>남은 구간만 수정해요</h3><p class="intro-text">휴식은 이미 걸은 거리를 없애지 않아요. 식사 예약과 필수 경험을 계속 유지해요.</p><div class="field"><label for="completed-count">완료한 구간</label><select id="completed-count">${Array.from({length:s.confirmed.rows.length+1},(_,n) => `<option value="${n}" ${s.completedCount === n ? 'selected' : ''}>${n ? `${n}개 완료 · ${esc(s.confirmed.rows[n-1].experience)}까지` : '아직 완료한 구간 없음'}</option>`).join('')}</select></div><div class="field"><label for="remaining-limit">남은 보행 상한 (m)</label><input id="remaining-limit" type="number" min="1" max="10000" value="${s.remainingLimit}"></div><div class="field"><label for="remaining-continuous">앞으로 한 번에 걷는 상한 (m)</label><input id="remaining-continuous" type="number" min="1" max="3000" value="${s.continuousLimit}"></div>${btn('prepare-change','짧은 접근 수정안 검사')}${s.change ? planCard(s.change) : ''}${status(`변경 확인: 어머니 ${s.changeConsent.mom ? '완료' : '대기'} · 아버지 ${s.changeConsent.dad ? '완료' : '대기'}`,!all(s.changeConsent))}${btn('apply-change','가족이 확인한 남은 일정 적용',!s.change?.valid || !all(s.changeConsent))}${source()}`);
+}
+function parentChange() {
+  return app(`${people[s.person]} · 변경 확인`, `${tabs()}<h3>잠깐 쉬고,<br>더 짧게 함께 가요</h3><p class="intro-text">원했던 경험을 유지하고 남은 관람 방식만 조정하는 안이에요.</p>${s.change ? `${planCard(s.change)}${btn('change-consent',s.changeConsent[s.person] ? '수정안 확인 완료' : '이 수정안 괜찮아요',!s.change.valid)}` : status('자녀가 남은 구간 수정안을 준비하고 있어요.',true)}${btn('guide','현재 여행 소개 보기',false,'','secondary')}`);
+}
+function avatar() {
+  const palettes = {warm:['#f1d8ae','#95ad87','#bd8c77'],water:['#e0ddf3','#92b9be','#a58dac'],pixel:['#dbe7f3','#779aac','#bc9172']};
+  const [background,green,shirt] = palettes[s.style];
+  const figures = [95,153,210].map((x,i) => s.style === 'pixel' ? `<rect x="${x-20}" y="62" width="40" height="48" fill="#f8d7b1"/><rect x="${x-20}" y="62" width="40" height="12" fill="#66594f"/><rect x="${x-25}" y="113" width="50" height="56" fill="${i===1?'#e7cfc1':shirt}"/><rect x="${x-10}" y="83" width="4" height="4"/><rect x="${x+7}" y="83" width="4" height="4"/>` : `<path d="M${x-27} 176q0-58 27-58t27 58" fill="${i===1?'#e7cfc1':shirt}"/><circle cx="${x}" cy="90" r="24" fill="#f8d7b1"/><path d="M${x-23} 86q0-34 27-23q18 4 18 23" fill="${i===0?'#6d6158':i===1?'#81776d':'#514b48'}"/><circle cx="${x-7}" cy="91" r="1.5"/><circle cx="${x+7}" cy="91" r="1.5"/><path d="M${x-7} 103q7 7 14 0" fill="none"/>`).join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" role="img" aria-label="기본 가족 캐릭터"><rect width="300" height="200" rx="20" fill="${background}"/><circle cx="247" cy="42" r="24" fill="#fff4ce"/><path d="M0 145Q80 105 150 141T300 131V200H0" fill="${green}"/><g stroke="#574937" stroke-width="2">${figures}</g></svg>`;
+}
+function memoryCard() {
+  return `<div class="memory-card"><div class="memory-head">같이온 · ${s.kind === 'invite' ? '여행 초대' : '여행의 기억'}</div><div class="memory-art">${s.memoryPhoto ? `<img src="${esc(s.memoryPhoto)}" alt="사용자가 선택한 여행 사진"><div class="avatar-overlay">${avatar()}</div>` : avatar()}</div><h4>${s.kind === 'invite' ? '함께 고른 여행에 초대해요' : '함께해서 더 좋았던 하루'}</h4><p>${esc(s.caption)}</p><div class="memory-meta">가족 여행 · 기본 캐릭터 템플릿<br>생성형 AI 변환 결과가 아니다.</div></div>`;
+}
+function childMemory() {
+  return app('자녀 · 가족 카드', `<span class="tag">여행 전후를 잇는 선택 기능</span><h3>우리 가족을<br>여행의 주인공으로</h3><p class="intro-text">지브리 스타일 등 사진을 그림으로 바꾸는 경험에서 착안했어요. 이 프로토타입은 기본 가족 캐릭터와 사진 합성으로 카드 흐름을 보여 줘요.</p><div class="choice"><button data-action="kind" data-kind="invite" class="${s.kind === 'invite' ? 'chosen' : ''}">여행 전 · 초대</button><button data-action="kind" data-kind="memory" class="${s.kind === 'memory' ? 'chosen' : ''}">여행 후 · 추억</button></div><div class="field"><label for="character-style">기본 캐릭터 표현</label><select id="character-style"><option value="warm" ${s.style === 'warm' ? 'selected' : ''}>따뜻한 그림 감성</option><option value="water" ${s.style === 'water' ? 'selected' : ''}>부드러운 만화 감성</option><option value="pixel" ${s.style === 'pixel' ? 'selected' : ''}>귀여운 픽셀 감성</option></select></div><label class="check-label"><input type="checkbox" id="photo-consent" ${s.photoConsent ? 'checked' : ''}>함께 찍힌 가족의 사진 이용 동의를 확인했어요</label><label class="photo-upload">여행 사진 선택<input id="memory-photo" type="file" accept="image/png,image/jpeg,image/webp" ${s.photoConsent ? '' : 'disabled'}></label>${s.memoryPhoto ? btn('remove-photo','선택한 사진 지우기',false,'','secondary') : ''}<p class="app-small">사진 없이도 만들 수 있어요. 사진은 이 탭의 메모리에만 보관하며 서버로 전송하지 않아요.</p><div class="field"><label for="caption">짧은 기록</label><input id="caption" maxlength="90" value="${esc(s.caption)}"></div>${btn('generate','가족 카드 미리보기 만들기')}${status('사진의 AI 캐릭터 변환은 이미지 생성 API 연결 후 구현한다. 현재 이미지는 기본 캐릭터 템플릿이다.',true)}${s.generated ? `${memoryCard()}${btn('download','초대·추억 카드 PNG 저장',false,'','secondary')}` : ''}`);
+}
+function parentMemory() {
+  return app('부모님 · 가족 카드', `<h3>${s.kind === 'invite' ? '함께 고른 여행을<br>기대해 주세요' : '우리 여행을<br>다시 꺼내 봐요'}</h3><p class="intro-text">좋아하는 경험, 함께하는 식사와 휴식을 가족의 기록으로 남겨요.</p>${s.generated ? `${memoryCard()}${btn('download','가족 카드 저장',false,'','secondary')}` : status('자녀가 가족 카드를 준비하고 있어요.')}<div class="app-card"><h4>함께 고른 경험</h4><p>${chosen().filter(p => PARENTS.some(r => s.draft.responses[r][p.id] === 'yes')).map(p => esc(p.experience)).join(' · ') || '사진 카드에서 골라 주세요.'}</p></div>${btn('guide','여행 소개 다시 보기',false,'','secondary')}`);
+}
+function invalidate(parent) {
+  s.consent = {mom:false,dad:false}; s.changeConsent = {mom:false,dad:false}; s.confirmed = null; s.change = null; s.dirty = true;
+  if (parent) s.draft.sources[parent] = 'unconfirmed';
+}
+function render() {
+  const positions = [$('child-screen').scrollTop,$('parent-screen').scrollTop];
+  document.querySelectorAll('[data-step]').forEach(b => {b.classList.toggle('active',Number(b.dataset.step) === s.step);b.setAttribute('aria-pressed',String(Number(b.dataset.step) === s.step));});
+  const [title, text] = contexts[s.step-1];
+  $('demo-context').innerHTML = `<strong>${title}</strong>${text}${s.sample ? ' 현재 응답은 가상 예시이다.' : ''}`;
+  const child = [setup,childResponses,childCompare,() => guide('자녀'),childChange,childMemory][s.step-1];
+  const parent = [parentCards,parentCards,parentCompare,() => guide('부모님'),parentChange,parentMemory][s.step-1];
+  $('child-screen').innerHTML = child(); $('parent-screen').innerHTML = parent();
+  if (render.step === s.step) { $('child-screen').scrollTop = positions[0]; $('parent-screen').scrollTop = positions[1]; }
+  render.step = s.step;
+  $('api-status').textContent = apiAvailable ? `로컬 API 연결${serverTrip ? ' · 저장됨' : ''}` : '브라우저 데모';
+}
+async function request(method, path, body) {
+  const headers = {'Content-Type':'application/json'};
+  if (serverTrip) headers['X-Trip-Token'] = serverTrip.token;
+  const response = await fetch(path,{method,headers,...(body ? {body:JSON.stringify(body)} : {})});
+  const result = await response.json();
+  if (!response.ok) throw new Error(response.status === 409 ? '저장된 상태가 바뀌었어요. 다시 시작해 주세요.' : typeof result.error === 'string' ? result.error : '확인할 조건이 있어요.');
+  return result;
+}
+async function saveDraft() {
+  if (!serverTrip) serverTrip = await request('POST','/api/trips',s.draft);
+  else if (s.dirty) {
+    const result = await request('PUT',`/api/trips/${serverTrip.id}`,{draft:s.draft,expected_revision:serverTrip.revision});
+    serverTrip = {...result,token:serverTrip.token};
+  }
+  s.dirty = false;
+}
+function clearPhotos() {for (const url of objectUrls) URL.revokeObjectURL(url);objectUrls.clear();}
+async function act(action, d = {}) {
+  const parent = s.person, id = chosen()[s.index[parent]]?.id;
+  switch (action) {
+    case 'person': s.person = d.person; break;
+    case 'setup': s.step = 1; break;
+    case 'pick': s.draft.candidates = s.draft.candidates.includes(d.id) ? s.draft.candidates.filter(i => i !== d.id) : [...s.draft.candidates,d.id]; s.prepared = false; s.draft.responses = {mom:{},dad:{}};s.draft.essentials = {mom:[],dad:[]};s.draft.sources = {mom:'unconfirmed',dad:'unconfirmed'};s.draft.unknown_ids = s.draft.unknown_ids.filter(i => s.draft.candidates.includes(i));s.index = {mom:0,dad:0};invalidate();break;
+    case 'prepare': if (!['sight','meal','rest'].every(k => chosen().some(p => p.kind === k))) {toast('관광·식사·휴식 후보를 하나 이상 골라 주세요.');return;}s.prepared = true;s.step = 2;break;
+    case 'answer': s.draft.responses[parent][id] = d.value;if (d.value !== 'yes') s.draft.essentials[parent] = s.draft.essentials[parent].filter(i => i !== id);invalidate(parent);break;
+    case 'essential': if(s.draft.responses[parent][id] !== 'yes')return;s.draft.essentials[parent] = s.draft.essentials[parent].includes(id) ? s.draft.essentials[parent].filter(i => i !== id) : [...s.draft.essentials[parent],id];invalidate(parent);break;
+    case 'previous': s.index[parent] = Math.max(0,s.index[parent]-1);break;
+    case 'next': s.index[parent] = Math.min(chosen().length-1,s.index[parent]+1);break;
+    case 'submit': if(!complete(parent))return;s.draft.sources[parent] = 'direct';s.dirty = true;toast(`${people[parent]}의 선택을 전달했어요.`);break;
+    case 'conversation': if(!complete(d.parent))return;s.draft.sources[d.parent] = 'conversation';s.dirty = true;break;
+    case 'compare': s.step = 3;break;
+    case 'select-plan': if(!plan(d.plan).valid)return;s.selected = d.plan;s.consent = {mom:false,dad:false};s.confirmed = null;break;
+    case 'consent': if(plan(s.selected).valid)s.consent[parent] = true;break;
+    case 'finalize': {
+      const p = plan(s.selected);if(!p.valid || !all(s.consent))return;
+      if(apiAvailable) {await saveDraft();const result = await request('POST',`/api/trips/${serverTrip.id}/confirm`,{plan_key:s.selected,confirmations:s.consent,expected_revision:serverTrip.revision});serverTrip = {...result,token:serverTrip.token};s.confirmed = result.plan;s.version = result.version;}
+      else {s.confirmed = p;s.version += 1;}
+      s.step = 4;toast('가족이 확인한 소개자료를 만들었어요.');break;
+    }
+    case 'save': if(!apiAvailable)return;await saveDraft();toast('사진을 제외한 설정과 응답을 로컬 API에 저장했어요.');break;
+    case 'choices': s.step = 2;break;
+    case 'guide': s.step = 4;break;
+    case 'rest': if(!s.confirmed)return;s.step = 5;s.change = null;s.changeConsent = {mom:false,dad:false};s.completedCount = Math.max(s.completedCount,s.confirmed.rows.filter(r => r.completed).length);break;
+    case 'prepare-change': if(!s.confirmed)return;s.change = remainingPlan(s.draft,s.confirmed,s.confirmed.rows.slice(0,s.completedCount).map(r => r.id),s.remainingLimit,s.continuousLimit,data);s.changeConsent = {mom:false,dad:false};break;
+    case 'change-consent': if(s.change?.valid)s.changeConsent[parent] = true;break;
+    case 'apply-change': if(!s.change?.valid || !all(s.changeConsent))return;if(apiAvailable) {const result = await request('POST',`/api/trips/${serverTrip.id}/change`,{expected_revision:serverTrip.revision,confirmations:s.changeConsent,completed_ids:s.confirmed.rows.slice(0,s.completedCount).map(r => r.id),remaining_walk_limit:s.remainingLimit,continuous_limit:s.continuousLimit});serverTrip = {...result,token:serverTrip.token};s.confirmed = result.plan;s.version = result.version;}else{s.confirmed = s.change;s.version += 1;}s.step = 4;toast('두 화면에 같은 수정 버전을 적용했어요.');break;
+    case 'memory': s.step = 6;break;
+    case 'kind': s.kind = d.kind;s.generated = false;break;
+    case 'generate': s.generated = true;break;
+    case 'remove-photo': if(s.memoryPhoto){URL.revokeObjectURL(s.memoryPhoto);objectUrls.delete(s.memoryPhoto);}s.memoryPhoto = null;s.generated = false;break;
+    case 'download': await downloadCard();return;
+    case 'print': if(!s.confirmed)return;$('print-guide').innerHTML = `<h1>같이온 · 오늘의 여행 소개</h1><p>일정 v${s.version} · 가상 데이터 기반 소개</p><p>함께 고른 경험 · 하루 보행 ${range(s.confirmed.walk)}m</p>${timeline(s.confirmed)}<p>장소·거리·시간·비용은 가상 예시이다. 실제 시설 이용 정보는 별도 확인이 필요하다.</p>`;window.print();return;
+  }
+  render();
+}
+document.addEventListener('click', async event => {
+  const b = event.target.closest('button');if(!b || b.disabled || !data)return;
+  try {
+    if(b.dataset.step){s.step = Number(b.dataset.step);render();return;}
+    if(b.id === 'reset-demo'){if(serverTrip && apiAvailable)await request('DELETE',`/api/trips/${serverTrip.id}`);serverTrip = null;clearPhotos();s = initial();render();toast('이 탭의 사진과 여행 상태를 지웠어요.');return;}
+    if(b.dataset.scenario){if(serverTrip && apiAvailable)await request('DELETE',`/api/trips/${serverTrip.id}`);serverTrip = null;clearPhotos();s = initial();s.draft = exampleDraft();s.prepared = true;s.sample = true;s.step = 3;if(b.dataset.scenario === 'tight'){s.draft.config.walk_limit = 250;s.draft.config.continuous_limit = 60;}if(b.dataset.scenario === 'unknown')s.draft.unknown_ids = ['fan'];if(b.dataset.scenario === 'disagree'){s.draft.responses.dad.fan = 'no';s.draft.essentials.dad = [];}if(b.dataset.scenario === 'memory'){s.step = 6;s.generated = true;}render();return;}
+    if(b.dataset.action){b.disabled = true;await act(b.dataset.action,b.dataset);}
+  } catch(error) {toast(error.message || '입력 조건을 확인해 주세요.');render();}
+  finally {if(b.isConnected)b.disabled = false;}
+});
+document.addEventListener('change', event => {
+  const el = event.target;if(!data)return;
+  if(el.dataset.photo || el.id === 'memory-photo') {
+    const file = el.files?.[0];if(!file)return;
+    if(!['image/png','image/jpeg','image/webp'].includes(file.type) || file.size > 5*1024*1024){toast('5MB 이하 PNG·JPEG·WebP 사진을 선택해 주세요.');el.value = '';return;}
+    if(el.id === 'memory-photo' && !s.photoConsent)return;
+    const url = URL.createObjectURL(file);objectUrls.add(url);
+    const old = el.dataset.photo ? s.photos[el.dataset.photo] : s.memoryPhoto;
+    if(old){URL.revokeObjectURL(old);objectUrls.delete(old);}
+    if(el.dataset.photo)s.photos[el.dataset.photo] = url;else{s.memoryPhoto = url;s.generated = false;}render();return;
+  }
+  const configIds = {'walk-limit':'walk_limit','continuous-limit':'continuous_limit',budget:'budget','avoid-stairs':'avoid_stairs','mild-food':'mild_food'};
+  if(configIds[el.id]){s.draft.config[configIds[el.id]] = el.type === 'checkbox' ? el.checked : Number(el.value);invalidate();}
+  if(el.id === 'completed-count'){const minimum = s.confirmed.rows.filter(r => r.completed).length;s.completedCount = Math.max(minimum,Number(el.value));s.change = null;s.changeConsent = {mom:false,dad:false};}
+  if(el.id === 'remaining-limit' || el.id === 'remaining-continuous'){s[el.id === 'remaining-limit' ? 'remainingLimit' : 'continuousLimit'] = Number(el.value);s.change = null;s.changeConsent = {mom:false,dad:false};}
+  if(el.id === 'character-style'){s.style = el.value;s.generated = false;}
+  if(el.id === 'photo-consent'){s.photoConsent = el.checked;if(!el.checked){if(s.memoryPhoto){URL.revokeObjectURL(s.memoryPhoto);objectUrls.delete(s.memoryPhoto);}s.memoryPhoto = null;s.generated = false;}}
+  if(el.id === 'caption'){s.caption = el.value.slice(0,90);s.generated = false;}
+  render();
+});
+async function downloadCard() {
+  if(!s.generated)return;
+  const canvas = document.createElement('canvas');canvas.width = 900;canvas.height = 1120;const ctx = canvas.getContext('2d');
+  const load = url => new Promise((resolve,reject) => {const im = new Image();im.onload = () => resolve(im);im.onerror = reject;im.src = url;});
+  ctx.fillStyle = '#fffaf2';ctx.fillRect(0,0,900,1120);ctx.fillStyle = '#2455cc';ctx.font = 'bold 32px sans-serif';ctx.fillText(`같이온 · ${s.kind === 'invite' ? '여행 초대' : '여행의 기억'}`,60,78);
+  if(s.memoryPhoto){const photo = await load(s.memoryPhoto);const scale = Math.max(780/photo.width,550/photo.height);ctx.save();ctx.beginPath();ctx.rect(60,115,780,550);ctx.clip();ctx.drawImage(photo,60+(780-photo.width*scale)/2,115+(550-photo.height*scale)/2,photo.width*scale,photo.height*scale);ctx.restore();}
+  const character = await load(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(avatar())}`);ctx.drawImage(character,s.memoryPhoto ? 490 : 60,s.memoryPhoto ? 450 : 115,s.memoryPhoto ? 350 : 780,s.memoryPhoto ? 233 : 520);
+  ctx.fillStyle = '#172b4d';ctx.font = 'bold 36px sans-serif';ctx.fillText(s.kind === 'invite' ? '함께 고른 여행에 초대해요' : '함께해서 더 좋았던 하루',60,750);ctx.font = '26px sans-serif';const chars = Array.from(s.caption);for(let i=0;i<chars.length;i+=23)ctx.fillText(chars.slice(i,i+23).join(''),60,805+Math.floor(i/23)*39);ctx.fillStyle = '#5f6f8a';ctx.font = '22px sans-serif';ctx.fillText('가족 여행 · 함께 남기는 하루',60,1005);ctx.font = '19px sans-serif';ctx.fillText('기본 캐릭터 템플릿 · 생성형 AI 변환 결과가 아님',60,1050);
+  const blob = await new Promise(resolve => canvas.toBlob(resolve,'image/png'));if(!blob)throw new Error('카드를 저장할 수 없어요.');const url = URL.createObjectURL(blob),a = document.createElement('a');a.href = url;a.download = `같이온_${s.kind === 'invite' ? '초대' : '추억'}_카드.png`;a.click();setTimeout(() => URL.revokeObjectURL(url),1000);toast('가족 카드를 PNG로 저장했어요.');
+}
+window.addEventListener('pagehide',clearPhotos);
+try {
+  const response = await fetch('./catalog.json');if(!response.ok)throw new Error('catalog unavailable');data = await response.json();s.step = 2;s.prepared = true;render();
+  try {const check = await fetch('/api/health');if(check.ok && (await check.json()).mode === 'local-prototype')apiAvailable = true;} catch { /* Static hosting uses browser-local planning. */ }
+  render();
+} catch { $('demo-context').textContent = '실행 방법: 저장소 폴더에서 python -m backend.server를 실행한 뒤 http://127.0.0.1:8000을 열어 주세요.'; }

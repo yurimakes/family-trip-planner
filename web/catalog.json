@@ -1,0 +1,587 @@
+{
+  "schema_version": 1,
+  "data_status": "synthetic",
+  "region": "가상 국내 권역",
+  "start_minutes": 600,
+  "meal_minutes": 720,
+  "transfer_minutes": 15,
+  "transfer_note": "가상 차량 이동 15분. 주차·하차 이후 걷기는 장소별 입구·출구 구간에 포함한다. 장소 사이에 별도 보행 연결은 없는 예시이다.",
+  "places": [
+    {
+      "id": "fan",
+      "kind": "sight",
+      "name": "좋아하는 작품의 풍경",
+      "experience": "테마 장소에서 가족사진",
+      "description": "좋아하는 인물·작품과 관련된 공개 장소를 후보로 확인해요.",
+      "bucket": "afternoon",
+      "color": "#d8e7dc",
+      "illustration": "assets/fan.svg",
+      "access": "known",
+      "open": [
+        540,
+        1080
+      ],
+      "mild_food": false,
+      "source": {
+        "status": "synthetic",
+        "url": null,
+        "checked_at": null,
+        "note": "가상 장소·구간. 실제 시설의 접근성과 관련 인물 관계를 확인한 자료가 아님."
+      },
+      "modes": [
+        {
+          "id": "full",
+          "name": "충분한 관람",
+          "minutes": 40,
+          "cost": [
+            0,
+            0
+          ],
+          "stairs": false,
+          "segments": [
+            {
+              "label": "입구 접근",
+              "walk": [
+                60,
+                80
+              ],
+              "break_after": false
+            },
+            {
+              "label": "경험·좌석 휴식",
+              "walk": [
+                100,
+                160
+              ],
+              "break_after": true
+            },
+            {
+              "label": "출구 연결",
+              "walk": [
+                60,
+                80
+              ],
+              "break_after": false
+            }
+          ]
+        },
+        {
+          "id": "short",
+          "name": "짧은 접근",
+          "minutes": 15,
+          "cost": [
+            0,
+            0
+          ],
+          "stairs": false,
+          "segments": [
+            {
+              "label": "입구 접근",
+              "walk": [
+                20,
+                30
+              ],
+              "break_after": false
+            },
+            {
+              "label": "경험·좌석 휴식",
+              "walk": [
+                40,
+                60
+              ],
+              "break_after": true
+            },
+            {
+              "label": "출구 연결",
+              "walk": [
+                20,
+                30
+              ],
+              "break_after": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "market",
+      "kind": "sight",
+      "name": "전통시장 골목",
+      "experience": "시장 짧게 둘러보기",
+      "description": "관심 있는 가게를 보고 간식과 풍경을 즐겨요.",
+      "bucket": "morning",
+      "color": "#dfe8f8",
+      "illustration": "assets/market.svg",
+      "access": "known",
+      "open": [
+        540,
+        1080
+      ],
+      "mild_food": false,
+      "source": {
+        "status": "synthetic",
+        "url": null,
+        "checked_at": null,
+        "note": "가상 장소·구간. 실제 시설의 접근성과 관련 인물 관계를 확인한 자료가 아님."
+      },
+      "modes": [
+        {
+          "id": "full",
+          "name": "충분한 관람",
+          "minutes": 40,
+          "cost": [
+            10000,
+            15000
+          ],
+          "stairs": false,
+          "segments": [
+            {
+              "label": "입구 접근",
+              "walk": [
+                40,
+                60
+              ],
+              "break_after": false
+            },
+            {
+              "label": "경험·좌석 휴식",
+              "walk": [
+                90,
+                140
+              ],
+              "break_after": true
+            },
+            {
+              "label": "출구 연결",
+              "walk": [
+                40,
+                60
+              ],
+              "break_after": false
+            }
+          ]
+        },
+        {
+          "id": "short",
+          "name": "짧은 접근",
+          "minutes": 20,
+          "cost": [
+            0,
+            5000
+          ],
+          "stairs": false,
+          "segments": [
+            {
+              "label": "입구 접근",
+              "walk": [
+                20,
+                30
+              ],
+              "break_after": false
+            },
+            {
+              "label": "경험·좌석 휴식",
+              "walk": [
+                30,
+                50
+              ],
+              "break_after": true
+            },
+            {
+              "label": "출구 연결",
+              "walk": [
+                20,
+                30
+              ],
+              "break_after": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rice",
+      "kind": "meal",
+      "name": "맵지 않은 한식 밥상",
+      "experience": "12시 함께하는 점심",
+      "description": "예약 시간을 먼저 확보하고 맵지 않은 메뉴를 골라요.",
+      "bucket": "meal",
+      "color": "#f3e2c8",
+      "illustration": "assets/rice.svg",
+      "access": "known",
+      "open": [
+        540,
+        1080
+      ],
+      "mild_food": true,
+      "source": {
+        "status": "synthetic",
+        "url": null,
+        "checked_at": null,
+        "note": "가상 장소·구간. 실제 시설의 접근성과 관련 인물 관계를 확인한 자료가 아님."
+      },
+      "modes": [
+        {
+          "id": "full",
+          "name": "충분한 관람",
+          "minutes": 60,
+          "cost": [
+            45000,
+            60000
+          ],
+          "stairs": false,
+          "segments": [
+            {
+              "label": "입구 접근",
+              "walk": [
+                15,
+                25
+              ],
+              "break_after": false
+            },
+            {
+              "label": "경험·좌석 휴식",
+              "walk": [
+                0,
+                0
+              ],
+              "break_after": true
+            },
+            {
+              "label": "출구 연결",
+              "walk": [
+                15,
+                25
+              ],
+              "break_after": false
+            }
+          ]
+        },
+        {
+          "id": "short",
+          "name": "짧은 접근",
+          "minutes": 60,
+          "cost": [
+            45000,
+            60000
+          ],
+          "stairs": false,
+          "segments": [
+            {
+              "label": "입구 접근",
+              "walk": [
+                10,
+                20
+              ],
+              "break_after": false
+            },
+            {
+              "label": "경험·좌석 휴식",
+              "walk": [
+                0,
+                0
+              ],
+              "break_after": true
+            },
+            {
+              "label": "출구 연결",
+              "walk": [
+                10,
+                20
+              ],
+              "break_after": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fish",
+      "kind": "meal",
+      "name": "담백한 생선 정식",
+      "experience": "12시 생선 정식",
+      "description": "식사 후보를 비교하고 두 분이 함께 원하는 메뉴를 확인해요.",
+      "bucket": "meal",
+      "color": "#e2ebef",
+      "illustration": "assets/fish.svg",
+      "access": "known",
+      "open": [
+        540,
+        1080
+      ],
+      "mild_food": true,
+      "source": {
+        "status": "synthetic",
+        "url": null,
+        "checked_at": null,
+        "note": "가상 장소·구간. 실제 시설의 접근성과 관련 인물 관계를 확인한 자료가 아님."
+      },
+      "modes": [
+        {
+          "id": "full",
+          "name": "충분한 관람",
+          "minutes": 60,
+          "cost": [
+            50000,
+            65000
+          ],
+          "stairs": false,
+          "segments": [
+            {
+              "label": "입구 접근",
+              "walk": [
+                20,
+                30
+              ],
+              "break_after": false
+            },
+            {
+              "label": "경험·좌석 휴식",
+              "walk": [
+                0,
+                0
+              ],
+              "break_after": true
+            },
+            {
+              "label": "출구 연결",
+              "walk": [
+                20,
+                30
+              ],
+              "break_after": false
+            }
+          ]
+        },
+        {
+          "id": "short",
+          "name": "짧은 접근",
+          "minutes": 60,
+          "cost": [
+            50000,
+            65000
+          ],
+          "stairs": false,
+          "segments": [
+            {
+              "label": "입구 접근",
+              "walk": [
+                15,
+                20
+              ],
+              "break_after": false
+            },
+            {
+              "label": "경험·좌석 휴식",
+              "walk": [
+                0,
+                0
+              ],
+              "break_after": true
+            },
+            {
+              "label": "출구 연결",
+              "walk": [
+                15,
+                20
+              ],
+              "break_after": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tea",
+      "kind": "rest",
+      "name": "한옥 카페에서 차 한 잔",
+      "experience": "앉아서 차 마시기",
+      "description": "조용한 공간에서 차와 디저트를 즐기며 쉬어요.",
+      "bucket": "rest",
+      "color": "#ece1ee",
+      "illustration": "assets/tea.svg",
+      "access": "known",
+      "open": [
+        540,
+        1080
+      ],
+      "mild_food": false,
+      "source": {
+        "status": "synthetic",
+        "url": null,
+        "checked_at": null,
+        "note": "가상 장소·구간. 실제 시설의 접근성과 관련 인물 관계를 확인한 자료가 아님."
+      },
+      "modes": [
+        {
+          "id": "full",
+          "name": "충분한 관람",
+          "minutes": 40,
+          "cost": [
+            15000,
+            21000
+          ],
+          "stairs": false,
+          "segments": [
+            {
+              "label": "입구 접근",
+              "walk": [
+                30,
+                40
+              ],
+              "break_after": false
+            },
+            {
+              "label": "경험·좌석 휴식",
+              "walk": [
+                0,
+                0
+              ],
+              "break_after": true
+            },
+            {
+              "label": "출구 연결",
+              "walk": [
+                30,
+                40
+              ],
+              "break_after": false
+            }
+          ]
+        },
+        {
+          "id": "short",
+          "name": "짧은 접근",
+          "minutes": 40,
+          "cost": [
+            15000,
+            21000
+          ],
+          "stairs": false,
+          "segments": [
+            {
+              "label": "입구 접근",
+              "walk": [
+                20,
+                30
+              ],
+              "break_after": false
+            },
+            {
+              "label": "경험·좌석 휴식",
+              "walk": [
+                0,
+                0
+              ],
+              "break_after": true
+            },
+            {
+              "label": "출구 연결",
+              "walk": [
+                20,
+                30
+              ],
+              "break_after": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bench",
+      "kind": "rest",
+      "name": "그늘 벤치에서 잠깐",
+      "experience": "앉아서 풍경 보기",
+      "description": "그늘과 좌석을 확인하고 잠깐 쉬어 가요.",
+      "bucket": "rest",
+      "color": "#e6eccf",
+      "illustration": "assets/bench.svg",
+      "access": "known",
+      "open": [
+        540,
+        1080
+      ],
+      "mild_food": false,
+      "source": {
+        "status": "synthetic",
+        "url": null,
+        "checked_at": null,
+        "note": "가상 장소·구간. 실제 시설의 접근성과 관련 인물 관계를 확인한 자료가 아님."
+      },
+      "modes": [
+        {
+          "id": "full",
+          "name": "충분한 관람",
+          "minutes": 30,
+          "cost": [
+            0,
+            0
+          ],
+          "stairs": false,
+          "segments": [
+            {
+              "label": "입구 접근",
+              "walk": [
+                20,
+                30
+              ],
+              "break_after": false
+            },
+            {
+              "label": "경험·좌석 휴식",
+              "walk": [
+                0,
+                0
+              ],
+              "break_after": true
+            },
+            {
+              "label": "출구 연결",
+              "walk": [
+                20,
+                30
+              ],
+              "break_after": false
+            }
+          ]
+        },
+        {
+          "id": "short",
+          "name": "짧은 접근",
+          "minutes": 30,
+          "cost": [
+            0,
+            0
+          ],
+          "stairs": false,
+          "segments": [
+            {
+              "label": "입구 접근",
+              "walk": [
+                10,
+                20
+              ],
+              "break_after": false
+            },
+            {
+              "label": "경험·좌석 휴식",
+              "walk": [
+                0,
+                0
+              ],
+              "break_after": true
+            },
+            {
+              "label": "출구 연결",
+              "walk": [
+                10,
+                20
+              ],
+              "break_after": false
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
