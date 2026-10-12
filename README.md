@@ -38,40 +38,6 @@
 
 **모든 장소·구간·거리·시간·비용은 가상 데이터이다.** 초기 데이터는 6개 후보와 12개 이용 방식으로 구성한다. 실제 장소는 출처 URL·확인일·접근 정보와 인물·작품 관계를 확인한 뒤 연결할 예정이다. 실제 제휴를 전제하지 않는다.
 
-## 바로 실행하기
-
-Python 3.10 이상이면 기본 서버를 추가 패키지 없이 실행할 수 있다.
-
-```bash
-git clone https://github.com/yurimakes/family-trip-planner.git
-cd family-trip-planner
-python -m backend.server
-```
-
-브라우저에서 **http://127.0.0.1:8000**을 연다. “일정 비교” 예시로 A·B안을 확인하고, 부모님 화면에서 어머니·아버지가 각각 일정을 확인하면 소개자료를 만들 수 있다. “정보 누락”, “선호 불일치”, “보행 조건 충돌”은 확정할 수 없는 상태를 보여준다.
-
-설정·응답 저장과 일정 확정은 로컬 API와 연결된다. 사진은 브라우저 메모리에서만 처리한다. “처음부터”는 이 탭에서 생성한 서버 여행 기록도 삭제한다. 저장 파일은 `.runtime/`에 생성되며 Git에서 제외한다.
-
-### 정적 UI만 실행
-
-```bash
-python -m http.server 8080 --bind 127.0.0.1 --directory web
-```
-
-**http://127.0.0.1:8080**에서 체험한다. API가 없으면 브라우저에서 동일한 검사 규칙을 실행하고 SQLite에 저장하지 않는다. 파일을 더블클릭하는 `file://` 실행은 지원하지 않는다.
-
-정적 호스팅용 루트 `index.html`도 제공한다. GitHub Pages를 사용할 경우 `main` 브랜치의 `/ (root)`를 배포 대상으로 설정하면 `web/`의 체험 화면으로 연결된다. Pages는 현재 배포하지 않았으며 Python API는 정적 호스팅에 포함되지 않는다.
-
-### 선택: FastAPI 실행
-
-```bash
-python -m venv .venv
-python -m pip install -r requirements.txt
-python -m uvicorn backend.fastapi_app:app --host 127.0.0.1 --port 8000
-```
-
-패키지 설치 전 가상환경을 활성화한다. Windows PowerShell은 `.\.venv\Scripts\Activate.ps1`, macOS/Linux는 `source .venv/bin/activate`를 사용한다. 기본 서버와 FastAPI 서버를 같은 포트에서 동시에 실행하지 않는다.
-
 ## 검사 규칙
 
 - 접근·내부 경험·출구의 보행 구간을 합산하고 범위의 **상한**으로 조건을 검사한다.
@@ -97,16 +63,9 @@ python -m uvicorn backend.fastapi_app:app --host 127.0.0.1 --port 8000
 | [API](docs/API.md) | 엔드포인트와 확인·변경 요청 |
 | [검증 기록](docs/VALIDATION.md) | 실행한 검사와 확인하지 못한 범위 |
 
-## 검증 실행
+## 검증 현황
 
-```bash
-python -m unittest discover -s tests -p "test_*.py" -v
-node --test tests/*.test.js
-node --check web/app.js
-python scripts/check_public.py
-```
-
-FastAPI 어댑터 검증에는 `python -m pip install -r requirements-dev.txt`로 선택 의존성을 설치한다. Python과 JavaScript 엔진은 공통 시나리오에서 결과를 비교한다.
+Python 테스트 36개와 JavaScript 테스트 4개가 통과했다. 선택형 FastAPI 실행 테스트 1개는 의존성 미설치로 건너뛰었으며, 실제 브라우저의 시각·인쇄·PNG 다운로드 검증은 아직 완료하지 않았다. 상세 범위는 [검증 기록](docs/VALIDATION.md)에 정리했다.
 
 ## 데이터와 개인정보
 
