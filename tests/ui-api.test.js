@@ -15,7 +15,7 @@ test('connected UI persists and confirms with the real Python service without se
     if(url === './catalog.json')return {ok:true,json:async () => JSON.parse(readFileSync(new URL('../web/catalog.json',import.meta.url)))};
     requests.push({url,options});
     const input = {database:join(temp,'trips.sqlite3'),method:options.method || 'GET',path:url,body:options.body ? JSON.parse(options.body) : null,token:options.headers?.['X-Trip-Token'] || null};
-    const python = spawnSync(process.env.PYTHON || 'python',['-c','import json,sys; from backend.service import Service; from backend.store import Store; x=json.load(sys.stdin); print(json.dumps(Service(Store(x["database"])).handle(x["method"],x["path"],x["body"],x["token"])))'],{input:JSON.stringify(input),encoding:'utf8'});
+    const python = spawnSync(process.env.PYTHON || 'python',['-X','utf8','-c','import json,sys; from backend.service import Service; from backend.store import Store; x=json.load(sys.stdin); print(json.dumps(Service(Store(x["database"])).handle(x["method"],x["path"],x["body"],x["token"])))'],{input:JSON.stringify(input),encoding:'utf8'});
     assert.equal(python.status,0,python.stderr);
     return {ok:true,json:async () => JSON.parse(python.stdout)};
   };

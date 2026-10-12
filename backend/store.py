@@ -5,6 +5,7 @@ import hmac
 import json
 import secrets
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 
 
@@ -15,8 +16,14 @@ class Store:
         with self.connect() as db:
             db.execute("CREATE TABLE IF NOT EXISTS trips (id TEXT PRIMARY KEY, token_hash TEXT NOT NULL, revision INTEGER NOT NULL, state TEXT NOT NULL)")
 
+    @contextmanager
     def connect(self):
-        return sqlite3.connect(self.path, timeout=10)
+        db = sqlite3.connect(self.path, timeout=10)
+        try:
+            with db:
+                yield db
+        finally:
+            db.close()
 
     def create(self, draft):
         trip_id, token = secrets.token_hex(12), secrets.token_urlsafe(32)
