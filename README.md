@@ -23,17 +23,31 @@
 
 아래 이미지는 **확정 UI 디자인 예시**이다. 이미지 안의 장소 수·거리·날짜·확인 표시·AI 이미지는 화면 설계용이며 실제 시설 검증이나 API 연동 결과를 의미하지 않는다. 실행 코드에서는 가상 데이터의 계산값과 현재 구현 상태를 표시한다.
 
+*이미지를 클릭하면 원본 크기로 확인할 수 있다.*
+
 ### 후보 준비 · 부모님 사진 선택
 
-![후보 준비와 부모님 사진 선택](web/assets/design/design-01.png)
+<p align="center">
+  <a href="web/assets/design/design-01.png">
+    <img src="web/assets/design/design-01.png" alt="후보 준비와 부모님 사진 선택" width="480">
+  </a>
+</p>
 
 ### 두 가지 대안 비교 · 남은 일정 변경 확인
 
-![일정 대안 비교와 변경 확인](web/assets/design/design-02.png)
+<p align="center">
+  <a href="web/assets/design/design-02.png">
+    <img src="web/assets/design/design-02.png" alt="일정 대안 비교와 변경 확인" width="480">
+  </a>
+</p>
 
 ### 여행 소개 · 가족 추억 카드
 
-![여행 소개와 가족 추억 카드](web/assets/design/design-03.png)
+<p align="center">
+  <a href="web/assets/design/design-03.png">
+    <img src="web/assets/design/design-03.png" alt="여행 소개와 가족 추억 카드" width="480">
+  </a>
+</p>
 
 ## 사용 흐름
 
@@ -55,7 +69,7 @@
 | 완료 구간 유지·남은 구간 재검사·일정 버전 변경 | 구현. 완료한 보행도 하루 합계에 포함 |
 | SQLite 저장·조회·수정·삭제, 변경 이력 | 로컬 API 구현. 토큰과 상태 revision 사용 |
 | 인쇄용 안내, 사진 합성·기본 캐릭터·PNG 내보내기 | 구현 코드. 지원 브라우저에서는 Web Share로 카드 파일을 공유하며 그 외에는 PNG 저장 |
-| FastAPI 어댑터 | 코드 작성. 기본 서버와 같은 서비스 계층 사용. 실행 검증 범위는 [검증 기록](docs/VALIDATION.md) 참고 |
+| FastAPI 어댑터 | 기본 API 테스트 통과. 기본 서버와 같은 서비스 계층 사용. 상세 범위는 [검증 기록](docs/VALIDATION.md) 참고 |
 | LLM 입력 해석·후보 설명 | 미연동. 현재 후보 설명은 정해진 예시 문구 |
 | 생성형 AI 가족 사진 캐릭터 변환 | 미연동. 기본 캐릭터를 AI 생성 결과로 표시하지 않음 |
 | 실제 관광·무장애 정보, 지도·공연·예약 연동 | 미연동. 실제 장소의 접근성·예약 가능성을 보장하지 않음 |
@@ -92,7 +106,7 @@
 
 ## 검증 현황
 
-Python 테스트 38개와 JavaScript 테스트 4개가 통과했다. 선택형 FastAPI 실행 테스트 1개는 의존성 미설치로 건너뛰었으며, 실제 브라우저의 시각·인쇄·PNG 다운로드 검증은 아직 완료하지 않았다. 상세 범위는 [검증 기록](docs/VALIDATION.md)에 정리했다.
+Windows·Python 3.13 환경에서 **Python 테스트 39개와 JavaScript 테스트 4개가 모두 통과**했다. Python 테스트에는 SQLite 연결 종료·롤백과 선택형 FastAPI 어댑터의 기본 API 검사가 포함된다. 실제 브라우저의 시각·사진 선택·인쇄·PNG 다운로드·공유 검증은 아직 완료하지 않았다. 상세 범위는 [검증 기록](docs/VALIDATION.md)에 정리했다.
 
 ## 데이터와 개인정보
 
