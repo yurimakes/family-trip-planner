@@ -4,6 +4,17 @@
 
 부모님과의 여행을 준비할 때 “어디든 괜찮아”라는 답만으로는 원하는 경험을 알기 어렵다. 같이온은 자녀가 추린 후보에서 부모님이 간단히 선택하고, **그 경험을 남기면서 걷는 방식과 일정을 조정**하는 서비스이다.
 
+## 관련 개발 경험
+
+본 프로젝트의 기획·개발 과정에는 공공데이터 처리, AI 에이전트, LLM 연동, 클라우드 기반 서비스 개발 등의 경험을 활용하고 있습니다.
+
+| 프로젝트 | 주요 기술 및 개발 경험 |
+| --- | --- |
+| [FinBridge](https://github.com/start-finance-ai/finbridge-backend) | 지원사업 조건 매칭, 재무 계산, OpenAPI·LLM 연동 및 웹서비스 개발 |
+| [금융상품 AI 에이전트](https://github.com/miraero-gaja/backend) | RDF/Turtle 온톨로지, 금융상품 조회 도구, HyperCLOVA X 기반 AI 에이전트 |
+| [지원장바구니](https://github.com/yurimakes/youth-policy-llm-recommender) | 청년정책 데이터 수집·정규화, 자격조건 검사, 임베딩 검색·LLM 연동 |
+| [CANOPY Data Platform](https://github.com/yurimakes/canopy-data-platform) | Azure·Databricks 기반 데이터 파이프라인, ML 모델 검증, 모바일·관리자 웹 연계 |
+
 현재 저장소는 **아이디어를 사용 흐름과 실행 가능한 코드로 구체화한 초기 프로토타입**이다. 실제 시설 데이터 수집, 외부 AI 연동, 별도 기기 사이의 가족 초대 기능은 후속 개발 범위이다.
 
 ![같이온 UI 구조 미리보기](docs/images/ui-overview.svg)
