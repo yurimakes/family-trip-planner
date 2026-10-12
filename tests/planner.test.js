@@ -23,13 +23,13 @@ test('Python and JavaScript return identical results across planning failures an
     cases.push({name,draft,key:'A'}, {name,draft,key:'B'});
   }
   cases.push({name:'incomplete',draft:initialDraft(),key:'A'});
-  const python = spawnSync(process.env.PYTHON || 'python',['-c','import json,sys; from backend.planner import build_plan; print(json.dumps([build_plan(c["draft"],c["key"]) for c in json.load(sys.stdin)]))'],{input:JSON.stringify(cases),encoding:'utf8'});
+  const python = spawnSync(process.env.PYTHON || 'python',['-X','utf8','-c','import json,sys; from backend.planner import build_plan; print(json.dumps([build_plan(c["draft"],c["key"]) for c in json.load(sys.stdin)]))'],{input:JSON.stringify(cases),encoding:'utf8'});
   assert.equal(python.status,0,python.stderr);
   const expected = JSON.parse(python.stdout);
   cases.forEach((c,i) => assert.deepEqual(buildPlan(c.draft,c.key,data),expected[i],c.name));
   const draft = exampleDraft(),original = buildPlan(draft,'A',data);
   const changes = [{ids:[],walk:1200,continuous:300},{ids:['market','rice'],walk:300,continuous:100},{ids:['market','rice'],walk:100,continuous:60}];
-  const changed = spawnSync(process.env.PYTHON || 'python',['-c','import json,sys; from backend.planner import remaining_plan; x=json.load(sys.stdin); print(json.dumps([remaining_plan(x["draft"],x["original"],c["ids"],c["walk"],c["continuous"]) for c in x["changes"]]))'],{input:JSON.stringify({draft,original,changes}),encoding:'utf8'});
+  const changed = spawnSync(process.env.PYTHON || 'python',['-X','utf8','-c','import json,sys; from backend.planner import remaining_plan; x=json.load(sys.stdin); print(json.dumps([remaining_plan(x["draft"],x["original"],c["ids"],c["walk"],c["continuous"]) for c in x["changes"]]))'],{input:JSON.stringify({draft,original,changes}),encoding:'utf8'});
   assert.equal(changed.status,0,changed.stderr);
   changes.forEach((c,i) => assert.deepEqual(remainingPlan(draft,original,c.ids,c.walk,c.continuous,data),JSON.parse(changed.stdout)[i]));
 });

@@ -12,6 +12,12 @@ test('six-stage UI renders, consent gates confirmation, changes preserve one ver
   const click = async dataset => listeners.get('click')({target:{closest:() => ({dataset,disabled:false,isConnected:false})}});
   const change = target => listeners.get('change')({target:{dataset:{},...target}});
   assert.match(element('parent-screen').innerHTML,/이런 곳은/);
+  await click({action:'category',category:'rest'});
+  assert.match(element('child-screen').innerHTML,/data-id="tea"/);
+  assert.doesNotMatch(element('child-screen').innerHTML,/data-id="rice"/);
+  await click({action:'category',category:'all'});
+  await click({action:'pick',id:'fish'});
+  assert.match(element('child-screen').innerHTML,/4\/4곳/);
   for(let step=1;step<=6;step++){await click({step:String(step)});assert.ok(element('child-screen').innerHTML.includes('app-body'));}
   await click({scenario:'compare'});
   await click({action:'finalize'});
@@ -37,6 +43,10 @@ test('six-stage UI renders, consent gates confirmation, changes preserve one ver
   assert.match(element('parent-screen').innerHTML,/확인한 뒤/);
   for(const scenario of ['unknown','tight','disagree']){await click({scenario});await click({action:'consent'});await click({action:'finalize'});assert.match(element('child-screen').innerHTML,/확인 필요/);}
   await click({scenario:'memory'});
+  await click({action:'style',style:'pixel'});
+  await click({action:'generate'});
+  assert.match(element('child-screen').innerHTML,/data-style="pixel" class="chosen"/);
+  assert.match(element('parent-screen').innerHTML,/기본 캐릭터/);
   change({id:'caption',value:'<script>alert(1)</script>'});
   await click({action:'generate'});
   assert.match(element('parent-screen').innerHTML,/&lt;script&gt;/);
