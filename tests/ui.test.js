@@ -12,6 +12,7 @@ test('six-stage UI renders, consent gates confirmation, changes preserve one ver
   const click = async dataset => listeners.get('click')({target:{closest:() => ({dataset,disabled:false,isConnected:false})}});
   const change = target => listeners.get('change')({target:{dataset:{},...target}});
   assert.match(element('parent-screen').innerHTML,/이런 곳은/);
+  assert.match(element('child-screen').innerHTML,/class="appbar child-nav"/);
   await click({action:'category',category:'rest'});
   assert.match(element('child-screen').innerHTML,/data-id="tea"/);
   assert.doesNotMatch(element('child-screen').innerHTML,/data-id="rice"/);
@@ -28,6 +29,8 @@ test('six-stage UI renders, consent gates confirmation, changes preserve one ver
   await click({action:'finalize'});
   assert.match(element('child-screen').innerHTML,/일정 v1/);
   assert.match(element('parent-screen').innerHTML,/일정 v1/);
+  assert.match(element('child-screen').innerHTML,/class="appbrand">같이온/);
+  assert.doesNotMatch(element('child-screen').innerHTML,/class="appbar child-nav"/);
   await click({action:'rest'});
   change({id:'completed-count',value:'2'});
   await click({action:'prepare-change'});
