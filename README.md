@@ -60,6 +60,8 @@ python -m http.server 8080 --bind 127.0.0.1 --directory web
 
 **http://127.0.0.1:8080**에서 체험한다. API가 없으면 브라우저에서 동일한 검사 규칙을 실행하고 SQLite에 저장하지 않는다. 파일을 더블클릭하는 `file://` 실행은 지원하지 않는다.
 
+정적 호스팅용 루트 `index.html`도 제공한다. GitHub Pages를 사용할 경우 `main` 브랜치의 `/ (root)`를 배포 대상으로 설정하면 `web/`의 체험 화면으로 연결된다. Pages는 현재 배포하지 않았으며 Python API는 정적 호스팅에 포함되지 않는다.
+
 ### 선택: FastAPI 실행
 
 ```bash
