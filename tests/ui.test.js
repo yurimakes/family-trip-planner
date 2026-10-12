@@ -1,0 +1,44 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+
+test('six-stage UI renders, consent gates confirmation, changes preserve one version',async () => {
+  const listeners = new Map(),els = new Map();
+  const element = id => {if(!els.has(id))els.set(id,{innerHTML:'',textContent:'',hidden:false,scrollTop:0});return els.get(id);};
+  globalThis.document = {getElementById:element,querySelectorAll:() => [],addEventListener:(name,fn) => listeners.set(name,fn)};
+  globalThis.window = {addEventListener:() => {},print:() => {}};
+  globalThis.fetch = async url => url === './catalog.json' ? {ok:true,json:async () => JSON.parse(readFileSync(new URL('../web/catalog.json',import.meta.url)))} : {ok:false};
+  await import('../web/app.js');
+  const click = async dataset => listeners.get('click')({target:{closest:() => ({dataset,disabled:false,isConnected:false})}});
+  const change = target => listeners.get('change')({target:{dataset:{},...target}});
+  assert.match(element('parent-screen').innerHTML,/이런 곳은/);
+  for(let step=1;step<=6;step++){await click({step:String(step)});assert.ok(element('child-screen').innerHTML.includes('app-body'));}
+  await click({scenario:'compare'});
+  await click({action:'finalize'});
+  assert.match(element('demo-context').innerHTML,/두 안을 비교/);
+  await click({action:'consent'});
+  await click({action:'person',person:'dad'});
+  await click({action:'consent'});
+  await click({action:'finalize'});
+  assert.match(element('child-screen').innerHTML,/일정 v1/);
+  assert.match(element('parent-screen').innerHTML,/일정 v1/);
+  await click({action:'rest'});
+  change({id:'completed-count',value:'2'});
+  await click({action:'prepare-change'});
+  assert.match(element('child-screen').innerHTML,/이미 걸은 거리/);
+  await click({action:'change-consent'});
+  await click({action:'person',person:'mom'});
+  await click({action:'change-consent'});
+  await click({action:'apply-change'});
+  assert.match(element('parent-screen').innerHTML,/일정 v2/);
+  await click({action:'choices'});
+  await click({action:'answer',value:'no'});
+  await click({step:'4'});
+  assert.match(element('parent-screen').innerHTML,/확인한 뒤/);
+  for(const scenario of ['unknown','tight','disagree']){await click({scenario});await click({action:'consent'});await click({action:'finalize'});assert.match(element('child-screen').innerHTML,/확인 필요/);}
+  await click({scenario:'memory'});
+  change({id:'caption',value:'<script>alert(1)</script>'});
+  await click({action:'generate'});
+  assert.match(element('parent-screen').innerHTML,/&lt;script&gt;/);
+  assert.doesNotMatch(element('parent-screen').innerHTML,/<script>/);
+});

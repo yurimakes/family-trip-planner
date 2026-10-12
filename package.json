@@ -1,0 +1,12 @@
+{
+  "name": "family-trip-planner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Family travel prototype with explicit preferences and deterministic checks",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "check": "node --check web/app.js && node --check web/planner.js"
+  },
+  "engines": {"node": ">=20"}
+}
