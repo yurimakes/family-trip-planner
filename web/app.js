@@ -2,6 +2,8 @@ import {icon} from './icons.js';
 import {PARENTS, initialDraft, exampleDraft, buildPlan, remainingPlan, metrics, escapeText as esc} from './planner.js';
 
 const $ = id => document.getElementById(id);
+const staticMode = $('runtime-config')?.content === 'static';
+let viewRole = 'child';
 const people = {mom: '어머니', dad: '아버지'};
 const kinds = {sight: '관광', meal: '식사', rest: '휴식'};
 const labels = {yes: 'O 좋아요', no: 'X 다른 게 좋아요', skip: '건너뜀'};
@@ -134,6 +136,8 @@ function invalidate(parent) {
 function render() {
   const positions = [$('child-screen').scrollTop,$('parent-screen').scrollTop];
   document.querySelectorAll('[data-step]').forEach(b => {b.classList.toggle('active',Number(b.dataset.step) === s.step);b.setAttribute('aria-pressed',String(Number(b.dataset.step) === s.step));});
+  $('demo-phones')?.setAttribute?.('data-view', viewRole);
+  document.querySelectorAll('[data-view-role]').forEach(b => b.setAttribute('aria-pressed',String(b.dataset.viewRole === viewRole)));
   const [title, text] = contexts[s.step-1];
   $('demo-context').innerHTML = `<strong>${title}</strong>${text}${s.sample ? ' 현재 응답은 가상 예시이다.' : ''}`;
   const child = [setup,childResponses,childCompare,() => guide('자녀'),childChange,childMemory][s.step-1];
@@ -141,7 +145,8 @@ function render() {
   $('child-screen').innerHTML = child(); $('parent-screen').innerHTML = parent();
   if (render.step === s.step) { $('child-screen').scrollTop = positions[0]; $('parent-screen').scrollTop = positions[1]; }
   render.step = s.step;
-  $('api-status').textContent = apiAvailable ? `로컬 API 연결${serverTrip ? ' · 저장됨' : ''}` : '브라우저 데모';
+  $('api-status').textContent = apiAvailable ? `로컬 API 연결${serverTrip ? ' · 저장됨' : ''}` : staticMode ? '공개 체험 · 가상 데이터' : '브라우저 데모';
+  $('mode-description').textContent = apiAvailable ? '설정·선택·확정 일정은 로컬 API에 저장돼요. 사진은 이 탭에만 보관돼요. 새로고침 후 자동 복구는 아직 지원하지 않아요.' : '가상 데이터로 체험해요. 선택·일정·사진은 이 탭에서만 사용하고 서버에 저장하지 않아요. 새로고침하면 처음부터 시작돼요.';
 }
 async function request(method, path, body) {
   const headers = {'Content-Type':'application/json'};
@@ -205,6 +210,7 @@ async function act(action, d = {}) {
 document.addEventListener('click', async event => {
   const b = event.target.closest('button');if(!b || b.disabled || !data)return;
   try {
+    if(b.dataset.viewRole){if(['child','parent'].includes(b.dataset.viewRole))viewRole = b.dataset.viewRole;render();return;}
     if(b.dataset.step){s.step = Number(b.dataset.step);render();return;}
     if(b.id === 'reset-demo'){if(serverTrip && apiAvailable)await request('DELETE',`/api/trips/${serverTrip.id}`);serverTrip = null;clearPhotos();s = initial();render();toast('이 탭의 사진과 여행 상태를 지웠어요.');return;}
     if(b.dataset.scenario){if(serverTrip && apiAvailable)await request('DELETE',`/api/trips/${serverTrip.id}`);serverTrip = null;clearPhotos();s = initial();s.draft = exampleDraft();s.prepared = true;s.sample = true;s.step = 3;if(b.dataset.scenario === 'tight'){s.draft.config.walk_limit = 250;s.draft.config.continuous_limit = 60;}if(b.dataset.scenario === 'unknown')s.draft.unknown_ids = ['fan'];if(b.dataset.scenario === 'disagree'){s.draft.responses.dad.fan = 'no';s.draft.essentials.dad = [];}if(b.dataset.scenario === 'memory'){s.step = 6;s.generated = true;}render();return;}
@@ -246,6 +252,6 @@ async function downloadCard(share = false) {
 window.addEventListener('pagehide',clearPhotos);
 try {
   const response = await fetch('./catalog.json');if(!response.ok)throw new Error('catalog unavailable');data = await response.json();s.step = 1;s.prepared = true;render();
-  try {const check = await fetch('/api/health');if(check.ok && (await check.json()).mode === 'local-prototype')apiAvailable = true;} catch { /* Static hosting uses browser-local planning. */ }
+  if(!staticMode){try {const check = await fetch('/api/health');if(check.ok && (await check.json()).mode === 'local-prototype')apiAvailable = true;} catch { /* Static hosting uses browser-local planning. */ }}
   render();
-} catch { $('demo-context').textContent = '실행 방법: 저장소 폴더에서 python -m backend.server를 실행한 뒤 http://127.0.0.1:8000을 열어 주세요.'; }
+} catch { $('demo-context').textContent = staticMode ? '체험 자료를 불러오지 못했어요. 페이지를 새로고침하거나 잠시 후 다시 열어 주세요.' : '실행 방법: 저장소 폴더에서 python -m backend.server를 실행한 뒤 http://127.0.0.1:8000을 열어 주세요.'; }
