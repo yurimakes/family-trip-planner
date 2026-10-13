@@ -4,7 +4,7 @@
 
 기존 검증 결과(2026-10-12): **Windows·Python 3.13 환경에서 Python 테스트 39개와 JavaScript 테스트 4개 모두 통과**했다. 선택형 FastAPI 어댑터 테스트도 포함하며 건너뛴 테스트는 없다. 당시 공개 파일 44개 검사에서 발견 사항은 0건이었다.
 
-공개 데모 구현 후 최신 [GitHub Actions 실행](https://github.com/yurimakes/family-trip-planner/actions/runs/38332533566)(2026-10-13): **Windows·Linux 각각 Python 43개와 JavaScript 5개 모두 통과**했다. 선택형 FastAPI 검사도 통과했고 건너뛴 테스트는 없다. 공개 파일 49개 검사에서 발견 사항 0건, JavaScript 구문 검사와 19개 공개 파일 빌드도 두 환경에서 통과했다. 해당 실행의 게시 작업은 PR이므로 건너뛰었다.
+공개 데모 구현 후 최신 [GitHub Actions 실행](https://github.com/yurimakes/family-trip-planner/actions/runs/38335110122)(2026-10-13): **Windows·Linux 각각 Python 43개와 JavaScript 5개 모두 통과**했다. 선택형 FastAPI 검사도 통과했고 건너뛴 테스트는 없다. 공개 파일 51개 검사에서 발견 사항 0건, JavaScript 구문 검사와 19개 공개 파일 빌드도 두 환경에서 통과했다. Windows PowerShell 게시 스크립트의 응답 대체 검사 8개도 통과했다. 해당 실행의 게시 작업은 PR이므로 건너뛰었다.
 
 선택형 FastAPI 의존성이 없는 로컬 Linux 실행에서는 Python 43개 중 42개 통과·1개 건너뜀이었고 JavaScript 5개가 통과했다. Actions는 선택 의존성을 설치한 환경의 별도 결과이다.
 

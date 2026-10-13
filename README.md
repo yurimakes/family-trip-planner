@@ -120,7 +120,7 @@ Windows에서 로그인된 GitHub CLI가 있다면 `scripts/publish_demo.ps1 -Wa
 
 ## 검증 현황
 
-최신 [GitHub Actions 검사](https://github.com/yurimakes/family-trip-planner/actions/runs/38332533566)에서 **Windows·Linux 각각 Python 43개와 JavaScript 5개 모두 통과**했다. 선택형 FastAPI 검사도 포함하며 건너뛴 테스트는 없다. 공개 파일 49개 검사에서 발견 사항 0건, 공개 데모 19개 파일 빌드도 두 환경에서 통과했다.
+최신 [GitHub Actions 검사](https://github.com/yurimakes/family-trip-planner/actions/runs/38335110122)에서 **Windows·Linux 각각 Python 43개와 JavaScript 5개 모두 통과**했다. 선택형 FastAPI 검사도 포함하며 건너뛴 테스트는 없다. 공개 파일 51개 검사에서 발견 사항 0건, 공개 데모 19개 파일 빌드도 두 환경에서 통과했다. Windows PowerShell 게시 스크립트의 응답 대체 검사 8개도 통과했다.
 
 Windows 브라우저에서 두 화면의 일정 v1, 헤더, 남은 일정 수정안, 인쇄용 안내 표시, 선택한 이미지의 카드 반영과 900×1120 PNG 저장을 확인했다. 사진 이용 동의 해제 시 이미지 삭제는 사용자 확인을 마쳤다. 실제 모바일 화면·Web Share 실행은 아직 확인하지 않았다. 상세 범위는 [검증 기록](docs/VALIDATION.md)에 정리했다.
 
