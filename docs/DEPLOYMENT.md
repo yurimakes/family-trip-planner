@@ -1,6 +1,8 @@
 # 공개 데모 배포
 
-공개 정적 데모와 개발용 로컬 API를 구분한다. 배포 코드는 준비됐으며 Pages 설정·워크플로 실행과 실제 URL 확인 전에는 배포 완료로 표시하지 않는다.
+공개 정적 데모와 개발용 로컬 API를 구분한다. **[공개 웹 데모](https://yurimakes.github.io/family-trip-planner/)**는 2026-10-13 최초 배포와 실제 접속 확인을 완료했다.
+
+[배포 실행 38338719788](https://github.com/yurimakes/family-trip-planner/actions/runs/38338719788)에서 Windows·Linux 검사와 Pages 게시가 모두 성공했다. 배포 기준 커밋은 `62df38e833b117b9bb60fb3e52543d62c19232f5`이며, Windows 게시 스크립트에서 웹의 공개 모드 표시를 확인한 `Verified web demo` 결과도 확인했다.
 
 배포 대상은 설치 없이 URL로 여는 일반 웹 체험이다.
 
@@ -46,7 +48,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\publish_demo.ps1 -
 4. URL에서 빠른 체험, 두 분 확인·일정 확정, 남은 일정 수정, 카드 PNG 저장을 확인한다.
 5. 실제 접속이 확인되면 README 상단에 해당 URL을 추가한다.
 
-기본 예상 주소는 `https://yurimakes.github.io/family-trip-planner/`이다. 실제 배포 결과의 URL을 기준으로 한다.
+공개 주소는 `https://yurimakes.github.io/family-trip-planner/`이다. 주소나 도메인 설정이 바뀌면 실제 배포 결과의 URL을 다시 확인한다.
 
 이후 main 변경을 자동 배포하려면 저장소 **Settings → Secrets and variables → Actions → Variables**에서 `PUBLIC_DEMO_ENABLED`를 `true`로 설정한다. 설정 전에는 PR·main 자동 검증만 실행하며 게시 작업을 건너뛴다. PR과 main 이외의 브랜치는 게시하지 않는다. 최초 배포 전에는 자동 게시를 기본으로 켜지 않는다.
 
