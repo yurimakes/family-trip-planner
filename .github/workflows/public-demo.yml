@@ -1,0 +1,75 @@
+name: Validate and publish demo
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-demo-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Install optional API test dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Check public files
+        run: python scripts/check_public.py
+      - name: Test Python rules and API
+        run: python -m unittest discover -s tests -p "test_*.py"
+      - name: Test JavaScript and service integration
+        run: npm test
+      - name: Check JavaScript syntax
+        run: npm run check
+      - name: Build browser-only demo
+        run: python scripts/build_static.py
+
+  publish:
+    name: Publish GitHub Pages
+    needs: verify
+    if: github.ref == 'refs/heads/main' && (vars.PUBLIC_DEMO_ENABLED == 'true' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Build browser-only demo
+        run: python scripts/build_static.py
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
