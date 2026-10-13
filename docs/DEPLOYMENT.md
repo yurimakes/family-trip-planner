@@ -2,6 +2,8 @@
 
 공개 정적 데모와 개발용 로컬 API를 구분한다. 배포 코드는 준비됐으며 Pages 설정·워크플로 실행과 실제 URL 확인 전에는 배포 완료로 표시하지 않는다.
 
+배포 대상은 설치 없이 URL로 여는 일반 웹 체험이다.
+
 ## 체험 범위
 
 | 구분 | 공개 정적 데모 | 로컬 Python 서버 |
@@ -26,6 +28,18 @@ python -m http.server 8080 --bind 127.0.0.1 --directory dist
 
 ## GitHub Pages 최초 설정
 
+Windows에서 이미 GitHub CLI(`gh`)에 로그인했다면 아래 스크립트로 Pages 설정과 최초 배포를 실행할 수 있다.
+
+```powershell
+git switch main
+git pull --ff-only origin main
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\publish_demo.ps1 -Wait
+```
+
+스크립트는 `yurimakes/family-trip-planner`의 원격 main만 배포한다. Pages가 없으면 생성하고, 기존 게시 방식이 다르면 GitHub Actions로 변경한다. 관리자 권한이나 네트워크가 부족하면 중단하며 토큰을 출력하지 않는다. `-Wait`은 해당 신규 배포 실행의 검증·게시 성공과 실제 웹의 공개 모드 표시를 확인한 뒤 `Verified web demo`와 URL을 출력한다. 게시 성공 후에도 웹 접속 확인에 실패하면 검증 완료로 표시하지 않는다. 별도 `PUBLIC_DEMO_ENABLED` 변수 없이 최초 수동 배포를 실행한다.
+
+브라우저 설정으로 진행할 수도 있다.
+
 1. 저장소 **Settings → Pages → Build and deployment → Source**를 **GitHub Actions**로 선택한다.
 2. **Actions → Validate and publish demo → Run workflow**에서 **main**을 선택해 실행한다.
 3. Windows·Linux 검증과 `Publish GitHub Pages`가 성공한 뒤 작업의 배포 URL을 연다.
@@ -41,5 +55,7 @@ python -m http.server 8080 --bind 127.0.0.1 --directory dist
 `.github/workflows/public-demo.yml`은 Python 3.13·Node.js 22로 Windows와 Linux에서 소스 공개 검사, Python 테스트, JavaScript 테스트·구문 검사, 공개 빌드를 수행한다. 선택형 API 테스트를 위해 `requirements-dev.txt`를 설치한다.
 
 정적 빌드 테스트는 저장소 하위 경로에서 디자인·글꼴·모듈·카탈로그가 제공되는지 확인한다. 공개 모드 UI 테스트는 역할 전환과 동의 전 확정 차단, 같은 일정 v1·v2 표시, API 요청이 없는지 확인한다. DOM 대체 객체를 사용하는 테스트이며 실제 모바일 브라우저·Web Share 실행 검증은 별도이다.
+
+Windows 게시 스크립트 검사는 GitHub CLI와 웹 응답을 대체해 최초 설정·기존 설정·게시 방식 변경·인증 실패·권한 실패·실행 요청 실패·검증/배포 실패·실제 페이지 확인 실패의 8개 흐름을 검사한다. 테스트 중 실제 Pages 설정이나 게시 요청을 변경하지 않는다. 실제 배포 성공은 사용자의 인증된 실행 결과로 별도 확인한다.
 
 Pages 구성은 GitHub 공식 [게시 방식 설정](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)과 [사용자 정의 워크플로](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)를 따른다. 개발용 Python 서버를 인터넷에 노출하는 배포는 포함하지 않는다.

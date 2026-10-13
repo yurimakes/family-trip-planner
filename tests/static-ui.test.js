@@ -20,7 +20,7 @@ test('public demo switches roles and confirms one version without API requests',
     return {ok:true, json:async () => JSON.parse(readFileSync(new URL('../web/catalog.json', import.meta.url)))};
   };
   await import('../web/app.js');
-  const click = dataset => listeners.get('click')({target:{closest:() => ({dataset, disabled:false, isConnected:false})}});
+  const click = (dataset, id) => listeners.get('click')({target:{closest:() => ({id, dataset, disabled:false, isConnected:false})}});
   assert.match(element('api-status').textContent, /공개 체험/);
   assert.match(element('mode-description').textContent, /서버에 저장하지/);
   await click({scenario:'compare'});
@@ -43,5 +43,13 @@ test('public demo switches roles and confirms one version without API requests',
   await click({action:'change-consent'});
   await click({action:'apply-change'});
   for (const id of ['child-screen','parent-screen']) assert.match(element(id).innerHTML, /일정 v2/);
+  await click({viewRole:'parent'});
+  element('child-screen').scrollTop = 400;
+  element('parent-screen').scrollTop = 300;
+  await click({}, 'reset-demo');
+  assert.equal(element('demo-phones').attributes['data-view'], 'child');
+  assert.equal(element('child-screen').scrollTop, 0);
+  assert.equal(element('parent-screen').scrollTop, 0);
+  assert.match(element('child-screen').innerHTML, /후보를 골라주세요/);
   assert.deepEqual(requests, ['./catalog.json']);
 });

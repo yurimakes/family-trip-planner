@@ -165,6 +165,12 @@ async function saveDraft() {
   s.dirty = false;
 }
 function clearPhotos() {for (const url of objectUrls) URL.revokeObjectURL(url);objectUrls.clear();}
+function resetScreens() {
+  viewRole = 'child';
+  $('child-screen').scrollTop = 0;
+  $('parent-screen').scrollTop = 0;
+  render.step = null;
+}
 async function act(action, d = {}) {
   const parent = s.person, id = chosen()[s.index[parent]]?.id;
   switch (action) {
@@ -212,8 +218,8 @@ document.addEventListener('click', async event => {
   try {
     if(b.dataset.viewRole){if(['child','parent'].includes(b.dataset.viewRole))viewRole = b.dataset.viewRole;render();return;}
     if(b.dataset.step){s.step = Number(b.dataset.step);render();return;}
-    if(b.id === 'reset-demo'){if(serverTrip && apiAvailable)await request('DELETE',`/api/trips/${serverTrip.id}`);serverTrip = null;clearPhotos();s = initial();render();toast('이 탭의 사진과 여행 상태를 지웠어요.');return;}
-    if(b.dataset.scenario){if(serverTrip && apiAvailable)await request('DELETE',`/api/trips/${serverTrip.id}`);serverTrip = null;clearPhotos();s = initial();s.draft = exampleDraft();s.prepared = true;s.sample = true;s.step = 3;if(b.dataset.scenario === 'tight'){s.draft.config.walk_limit = 250;s.draft.config.continuous_limit = 60;}if(b.dataset.scenario === 'unknown')s.draft.unknown_ids = ['fan'];if(b.dataset.scenario === 'disagree'){s.draft.responses.dad.fan = 'no';s.draft.essentials.dad = [];}if(b.dataset.scenario === 'memory'){s.step = 6;s.generated = true;}render();return;}
+    if(b.id === 'reset-demo'){if(serverTrip && apiAvailable)await request('DELETE',`/api/trips/${serverTrip.id}`);serverTrip = null;clearPhotos();s = initial();resetScreens();render();toast('이 탭의 사진과 여행 상태를 지웠어요.');return;}
+    if(b.dataset.scenario){if(serverTrip && apiAvailable)await request('DELETE',`/api/trips/${serverTrip.id}`);serverTrip = null;clearPhotos();s = initial();s.draft = exampleDraft();s.prepared = true;s.sample = true;s.step = 3;if(b.dataset.scenario === 'tight'){s.draft.config.walk_limit = 250;s.draft.config.continuous_limit = 60;}if(b.dataset.scenario === 'unknown')s.draft.unknown_ids = ['fan'];if(b.dataset.scenario === 'disagree'){s.draft.responses.dad.fan = 'no';s.draft.essentials.dad = [];}if(b.dataset.scenario === 'memory'){s.step = 6;s.generated = true;}resetScreens();render();return;}
     if(b.dataset.action){b.disabled = true;await act(b.dataset.action,b.dataset);}
   } catch(error) {toast(error.message || '입력 조건을 확인해 주세요.');render();}
   finally {if(b.isConnected)b.disabled = false;}

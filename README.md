@@ -27,6 +27,8 @@ python -m backend.server
 
 공개 링크로 체험할 수 있도록 **GitHub Pages 배포 구성과 Windows·Linux 자동 검증을 준비**했다. 공개 빌드는 가상 데이터로 브라우저에서 실행하며 선택·일정·사진을 서버에 저장하지 않는다. 실제 공개 URL은 최초 배포와 접속 확인 후 추가한다. [배포 방법과 체험 범위](docs/DEPLOYMENT.md)를 참고한다.
 
+Windows에서 로그인된 GitHub CLI가 있다면 `scripts/publish_demo.ps1 -Wait`으로 Pages 설정·배포·실제 URL 접속 확인을 진행할 수 있다. 배포 대상은 앱 설치 없이 링크로 여는 웹 데모이다.
+
 ## 확정 앱 디자인
 
 초록색을 중심으로 후보 준비·사진 선택, 대안 비교·변경 확인, 여행 소개·추억 카드의 세 가지 장면을 구성했다. 앱 화면에도 큰 사진 카드, O/X 선택, 나란한 일정 비교, 변경 요약과 소개·추억 카드 구성을 반영했다.
@@ -118,7 +120,7 @@ python -m backend.server
 
 ## 검증 현황
 
-최신 [GitHub Actions 검사](https://github.com/yurimakes/family-trip-planner/actions/runs/38332533566)에서 **Windows·Linux 각각 Python 43개와 JavaScript 5개 모두 통과**했다. 선택형 FastAPI 검사도 포함하며 건너뛴 테스트는 없다. 공개 파일 49개 검사에서 발견 사항 0건, 공개 데모 19개 파일 빌드도 두 환경에서 통과했다.
+최신 [GitHub Actions 검사](https://github.com/yurimakes/family-trip-planner/actions/runs/38335110122)에서 **Windows·Linux 각각 Python 43개와 JavaScript 5개 모두 통과**했다. 선택형 FastAPI 검사도 포함하며 건너뛴 테스트는 없다. 공개 파일 51개 검사에서 발견 사항 0건, 공개 데모 19개 파일 빌드도 두 환경에서 통과했다. Windows PowerShell 게시 스크립트의 응답 대체 검사 8개도 통과했다.
 
 Windows 브라우저에서 두 화면의 일정 v1, 헤더, 남은 일정 수정안, 인쇄용 안내 표시, 선택한 이미지의 카드 반영과 900×1120 PNG 저장을 확인했다. 사진 이용 동의 해제 시 이미지 삭제는 사용자 확인을 마쳤다. 실제 모바일 화면·Web Share 실행은 아직 확인하지 않았다. 상세 범위는 [검증 기록](docs/VALIDATION.md)에 정리했다.
 
